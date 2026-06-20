@@ -23,7 +23,7 @@ class BlockPermutationDecode extends Operation {
 
         this.name = "Block Permutation Decode";
         this.module = "Ciphers";
-        this.description = "Decodes text by splitting it into fixed-length blocks and reordering each block using a permutation mask. Leave the mask blank to use 0,1,...,n-1. Use ',' or spaces between mask values. Use '*' for unknown positions; missing mask positions are padded with '*'.";
+        this.description = "Decodes text by splitting it into fixed-length blocks and reordering each block using a permutation mask. Leave the mask blank to use 0,1,...,n-1. Use ',' or spaces between mask values. Use '*' for unknown positions; missing mask positions are padded with '*'. Optionally filter results by a match string.";
         this.infoURL = "https://wikipedia.org/wiki/Transposition_cipher";
         this.inputType = "string";
         this.outputType = "string";
@@ -41,6 +41,12 @@ class BlockPermutationDecode extends Operation {
                 type: "string",
                 value: "",
                 hint: "Comma- or space-separated zero-based indexes. Blank means auto. Use '*' for unknown positions, e.g. *,4,2,3,*,* or * 4 2 3 * *."
+            },
+            {
+                name: "Match string",
+                type: "string",
+                value: "",
+                hint: "Only output decoded results containing this string. Leave blank to output all results."
             }
         ];
     }
@@ -52,13 +58,15 @@ class BlockPermutationDecode extends Operation {
      */
     run(input, args) {
         const [blockLength, maskStr] = args,
+            matchStr = args[2] || "",
             mask = parseMask(maskStr, blockLength),
             stats = getStats(mask);
 
         validateLimits(blockLength);
 
         if (stats.wildcardCount === 0) {
-            return decode(input, mask, blockLength);
+            const decoded = decode(input, mask, blockLength);
+            return matches(decoded, matchStr) ? decoded : "";
         }
 
         if (stats.candidates > MAX_RESULTS) {
@@ -68,12 +76,7 @@ class BlockPermutationDecode extends Operation {
         if (isWorkerEnvironment())
             self.sendStatusMessage(`Calculating ${stats.candidates} block permutations...`);
 
-        const output = [
-            `# block length: ${blockLength}`,
-            `# resolved mask: ${maskToString(mask)}`,
-            `# wildcard positions: ${stats.wildcardCount}`,
-            `# candidate permutations: ${stats.candidates}`
-        ];
+        const matchedResults = [];
         let count = 0;
 
         for (const perm of generateMasks(mask, blockLength)) {
@@ -84,10 +87,19 @@ class BlockPermutationDecode extends Operation {
 
             const decoded = decode(input, perm, blockLength);
 
-            output.push(`\n# perm: ${maskToString(perm)}\n${decoded}`);
+            if (matches(decoded, matchStr)) {
+                matchedResults.push(`\n# perm: ${maskToString(perm)}\n${decoded}`);
+            }
         }
 
-        return output.join("\n");
+        return [
+            `# block length: ${blockLength}`,
+            `# resolved mask: ${maskToString(mask)}`,
+            `# wildcard positions: ${stats.wildcardCount}`,
+            `# candidate permutations: ${stats.candidates}`,
+            `# match string: ${matchStr}`,
+            `# matched permutations: ${matchedResults.length}`
+        ].concat(matchedResults).join("\n");
     }
 
 }
@@ -235,6 +247,15 @@ function decode(input, perm, blockLength) {
  */
 function maskToString(mask) {
     return mask.join(",");
+}
+
+/**
+ * @param {string} decoded
+ * @param {string} matchStr
+ * @returns {boolean}
+ */
+function matches(decoded, matchStr) {
+    return !matchStr || decoded.indexOf(matchStr) >= 0;
 }
 
 /**

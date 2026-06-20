@@ -45,7 +45,7 @@ TestRegister.addTests([
     {
         name: "Block Permutation Decode: enumerate wildcards",
         input: "abcdef",
-        expectedOutput: "# block length: 6\n# resolved mask: *,1,2,3,4,*\n# wildcard positions: 2\n# candidate permutations: 2\n\n# perm: 0,1,2,3,4,5\nabcdef\n\n# perm: 5,1,2,3,4,0\nfbcdea",
+        expectedOutput: "# block length: 6\n# resolved mask: *,1,2,3,4,*\n# wildcard positions: 2\n# candidate permutations: 2\n# match string: \n# matched permutations: 2\n\n# perm: 0,1,2,3,4,5\nabcdef\n\n# perm: 5,1,2,3,4,0\nfbcdea",
         recipeConfig: [
             {
                 op: "Block Permutation Decode",
@@ -54,9 +54,31 @@ TestRegister.addTests([
         ],
     },
     {
+        name: "Block Permutation Decode: match string filters single permutation",
+        input: "abcdef",
+        expectedOutput: "",
+        recipeConfig: [
+            {
+                op: "Block Permutation Decode",
+                args: [6, "0,1,2,3,4,5", "flag"],
+            },
+        ],
+    },
+    {
+        name: "Block Permutation Decode: match string filters wildcard results",
+        input: "abcdef",
+        expectedOutput: "# block length: 6\n# resolved mask: *,1,2,3,4,*\n# wildcard positions: 2\n# candidate permutations: 2\n# match string: fbc\n# matched permutations: 1\n\n# perm: 5,1,2,3,4,0\nfbcdea",
+        recipeConfig: [
+            {
+                op: "Block Permutation Decode",
+                args: [6, "*,1,2,3,4,*", "fbc"],
+            },
+        ],
+    },
+    {
         name: "Block Permutation Decode: pads short mask with wildcards",
         input: "abcdef",
-        expectedOutput: "# block length: 6\n# resolved mask: *,4,2,3,*,*\n# wildcard positions: 3\n# candidate permutations: 6\n\n# perm: 0,4,2,3,1,5\naecdbf\n\n# perm: 0,4,2,3,5,1\naecdfb\n\n# perm: 1,4,2,3,0,5\nbecdaf\n\n# perm: 1,4,2,3,5,0\nbecdfa\n\n# perm: 5,4,2,3,0,1\nfecdab\n\n# perm: 5,4,2,3,1,0\nfecdba",
+        expectedOutput: "# block length: 6\n# resolved mask: *,4,2,3,*,*\n# wildcard positions: 3\n# candidate permutations: 6\n# match string: \n# matched permutations: 6\n\n# perm: 0,4,2,3,1,5\naecdbf\n\n# perm: 0,4,2,3,5,1\naecdfb\n\n# perm: 1,4,2,3,0,5\nbecdaf\n\n# perm: 1,4,2,3,5,0\nbecdfa\n\n# perm: 5,4,2,3,0,1\nfecdab\n\n# perm: 5,4,2,3,1,0\nfecdba",
         recipeConfig: [
             {
                 op: "Block Permutation Decode",

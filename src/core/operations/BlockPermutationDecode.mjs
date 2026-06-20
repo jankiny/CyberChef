@@ -58,7 +58,7 @@ class BlockPermutationDecode extends Operation {
      */
     run(input, args) {
         const [blockLength, maskStr] = args,
-            matchStr = args[2] || "",
+            matchStr = getMatchString(args),
             mask = parseMask(maskStr, blockLength),
             stats = getStats(mask);
 
@@ -114,7 +114,7 @@ function parseMask(maskStr, blockLength) {
         throw new OperationError("Block length must be a positive integer.");
     }
 
-    const rawMask = maskStr.trim();
+    const rawMask = (maskStr || "").toString().trim();
     const parts = rawMask ?
         rawMask.split(/[,\s]+/) :
         defaultMask(blockLength).split(",");
@@ -256,6 +256,17 @@ function maskToString(mask) {
  */
 function matches(decoded, matchStr) {
     return !matchStr || decoded.indexOf(matchStr) >= 0;
+}
+
+/**
+ * @param {Object[]} args
+ * @returns {string}
+ */
+function getMatchString(args) {
+    if (args[2] === "Apply single permutation" || args[2] === "Enumerate wildcard permutations") {
+        return args[3] || "";
+    }
+    return args[2] || "";
 }
 
 /**

@@ -21,6 +21,17 @@ TestRegister.addTests([
         ],
     },
     {
+        name: "Block Permutation Decode: default mask from null value",
+        input: "abcdef",
+        expectedOutput: "abcdef",
+        recipeConfig: [
+            {
+                op: "Block Permutation Decode",
+                args: [6, null],
+            },
+        ],
+    },
+    {
         name: "Block Permutation Decode: single permutation",
         input: "abcdefghijkl",
         expectedOutput: "bacdefhgijkl",

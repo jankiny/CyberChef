@@ -8,6 +8,7 @@ import Operation from "../Operation.mjs";
 import OperationError from "../errors/OperationError.mjs";
 
 const WILDCARD = "*";
+const MAX_RESULTS = 10000;
 
 /**
  * Block Permutation Decode operation
@@ -22,7 +23,7 @@ class BlockPermutationDecode extends Operation {
 
         this.name = "Block Permutation Decode";
         this.module = "Ciphers";
-        this.description = "Decodes text by splitting it into fixed-length blocks and reordering each block using a permutation mask. Use '*' in the mask to enumerate unknown positions.";
+        this.description = "Decodes text by splitting it into fixed-length blocks and reordering each block using a permutation mask. Leave the mask blank to use 0,1,...,n-1. Use '*' for unknown positions; missing mask positions are padded with '*'.";
         this.infoURL = "https://wikipedia.org/wiki/Transposition_cipher";
         this.inputType = "string";
         this.outputType = "string";
@@ -30,32 +31,16 @@ class BlockPermutationDecode extends Operation {
             {
                 name: "Block length",
                 type: "number",
-                value: 6
+                value: 6,
+                min: 1,
+                max: 50,
+                hint: "Number of characters in each block."
             },
             {
                 name: "Permutation mask",
                 type: "string",
-                value: ""
-            },
-            {
-                name: "Mode",
-                type: "option",
-                value: ["Apply single permutation", "Enumerate wildcard permutations"]
-            },
-            {
-                name: "Crib filter",
-                type: "string",
-                value: ""
-            },
-            {
-                name: "Max results",
-                type: "number",
-                value: 10000
-            },
-            {
-                name: "Show stats only",
-                type: "boolean",
-                value: false
+                value: "",
+                hint: "Comma-separated zero-based indexes. Blank means auto. Use '*' for unknown positions, e.g. *,4,2,3,*,*."
             }
         ];
     }
@@ -66,38 +51,29 @@ class BlockPermutationDecode extends Operation {
      * @returns {string}
      */
     run(input, args) {
-        const [blockLength, maskStr, mode, crib, maxResults, showStatsOnly] = args,
+        const [blockLength, maskStr] = args,
             mask = parseMask(maskStr, blockLength),
             stats = getStats(mask);
 
-        validateLimits(blockLength, maxResults);
+        validateLimits(blockLength);
 
-        if (mode === "Apply single permutation" && stats.wildcardCount > 0) {
-            throw new OperationError("The permutation mask contains wildcards. Use 'Enumerate wildcard permutations' mode or provide a complete permutation.");
-        }
-
-        const statsText = [
-            `Block length: ${blockLength}`,
-            `Permutation mask: ${maskToString(mask)}`,
-            `Wildcard positions: ${stats.wildcardCount}`,
-            `Candidate permutations: ${stats.candidates}`,
-            `Estimated output size: ${input.length * stats.candidates} characters`
-        ].join("\n");
-
-        if (showStatsOnly) return statsText;
-
-        if (mode === "Apply single permutation") {
+        if (stats.wildcardCount === 0) {
             return decode(input, mask, blockLength);
         }
 
-        if (stats.candidates > maxResults) {
-            throw new OperationError(`Too many candidate permutations: ${stats.candidates}. Increase Max results or reduce the number of wildcards.`);
+        if (stats.candidates > MAX_RESULTS) {
+            throw new OperationError(`Too many candidate permutations: ${stats.candidates}. The limit is ${MAX_RESULTS}; fix more mask positions or reduce the block length.`);
         }
 
         if (isWorkerEnvironment())
             self.sendStatusMessage(`Calculating ${stats.candidates} block permutations...`);
 
-        const output = [];
+        const output = [
+            `# block length: ${blockLength}`,
+            `# resolved mask: ${maskToString(mask)}`,
+            `# wildcard positions: ${stats.wildcardCount}`,
+            `# candidate permutations: ${stats.candidates}`
+        ];
         let count = 0;
 
         for (const perm of generateMasks(mask, blockLength)) {
@@ -107,12 +83,11 @@ class BlockPermutationDecode extends Operation {
             }
 
             const decoded = decode(input, perm, blockLength);
-            if (crib && decoded.indexOf(crib) < 0) continue;
 
-            output.push(`# perm: ${maskToString(perm)}\n${decoded}`);
+            output.push(`\n# perm: ${maskToString(perm)}\n${decoded}`);
         }
 
-        return output.join("\n\n");
+        return output.join("\n");
     }
 
 }
@@ -127,12 +102,16 @@ function parseMask(maskStr, blockLength) {
         throw new OperationError("Block length must be a positive integer.");
     }
 
-    const rawMask = maskStr.trim() || defaultMask(blockLength);
-    const parts = rawMask.split(",").map(part => part.trim());
+    const rawMask = maskStr.trim();
+    const parts = rawMask ?
+        rawMask.split(",").map(part => part.trim()) :
+        defaultMask(blockLength).split(",");
 
-    if (parts.length !== blockLength) {
-        throw new OperationError(`Permutation mask length (${parts.length}) must match block length (${blockLength}).`);
+    if (parts.length > blockLength) {
+        throw new OperationError(`Permutation mask length (${parts.length}) must not exceed block length (${blockLength}).`);
     }
+
+    while (parts.length < blockLength) parts.push(WILDCARD);
 
     const seen = new Set();
     return parts.map(part => {
@@ -260,12 +239,8 @@ function maskToString(mask) {
 
 /**
  * @param {number} blockLength
- * @param {number} maxResults
  */
-function validateLimits(blockLength, maxResults) {
-    if (!Number.isInteger(maxResults) || maxResults < 1) {
-        throw new OperationError("Max results must be a positive integer.");
-    }
+function validateLimits(blockLength) {
     if (blockLength > 50) {
         throw new OperationError("Block length must be 50 or less.");
     }

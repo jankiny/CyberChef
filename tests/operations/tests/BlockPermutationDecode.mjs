@@ -16,7 +16,7 @@ TestRegister.addTests([
         recipeConfig: [
             {
                 op: "Block Permutation Decode",
-                args: [6, "", "Apply single permutation", "", 10000, false],
+                args: [6, ""],
             },
         ],
     },
@@ -27,51 +27,40 @@ TestRegister.addTests([
         recipeConfig: [
             {
                 op: "Block Permutation Decode",
-                args: [6, "1,0,2,3,4,5", "Apply single permutation", "", 10000, false],
+                args: [6, "1,0,2,3,4,5"],
             },
         ],
     },
     {
         name: "Block Permutation Decode: enumerate wildcards",
         input: "abcdef",
-        expectedOutput: "# perm: 0,1,2,3,4,5\nabcdef\n\n# perm: 5,1,2,3,4,0\nfbcdea",
+        expectedOutput: "# block length: 6\n# resolved mask: *,1,2,3,4,*\n# wildcard positions: 2\n# candidate permutations: 2\n\n# perm: 0,1,2,3,4,5\nabcdef\n\n# perm: 5,1,2,3,4,0\nfbcdea",
         recipeConfig: [
             {
                 op: "Block Permutation Decode",
-                args: [6, "*,1,2,3,4,*", "Enumerate wildcard permutations", "", 10000, false],
+                args: [6, "*,1,2,3,4,*"],
             },
         ],
     },
     {
-        name: "Block Permutation Decode: crib filter",
+        name: "Block Permutation Decode: pads short mask with wildcards",
         input: "abcdef",
-        expectedOutput: "# perm: 5,1,2,3,4,0\nfbcdea",
+        expectedOutput: "# block length: 6\n# resolved mask: *,4,2,3,*,*\n# wildcard positions: 3\n# candidate permutations: 6\n\n# perm: 0,4,2,3,1,5\naecdbf\n\n# perm: 0,4,2,3,5,1\naecdfb\n\n# perm: 1,4,2,3,0,5\nbecdaf\n\n# perm: 1,4,2,3,5,0\nbecdfa\n\n# perm: 5,4,2,3,0,1\nfecdab\n\n# perm: 5,4,2,3,1,0\nfecdba",
         recipeConfig: [
             {
                 op: "Block Permutation Decode",
-                args: [6, "*,1,2,3,4,*", "Enumerate wildcard permutations", "fbc", 10000, false],
+                args: [6, "*,4,2,3"],
             },
         ],
     },
     {
-        name: "Block Permutation Decode: show stats only",
+        name: "Block Permutation Decode: long mask",
         input: "abcdef",
-        expectedOutput: "Block length: 6\nPermutation mask: *,1,2,3,4,*\nWildcard positions: 2\nCandidate permutations: 2\nEstimated output size: 12 characters",
+        expectedOutput: "Permutation mask length (7) must not exceed block length (6).",
         recipeConfig: [
             {
                 op: "Block Permutation Decode",
-                args: [6, "*,1,2,3,4,*", "Enumerate wildcard permutations", "", 10000, true],
-            },
-        ],
-    },
-    {
-        name: "Block Permutation Decode: wildcard requires enumerate mode",
-        input: "abcdef",
-        expectedOutput: "The permutation mask contains wildcards. Use 'Enumerate wildcard permutations' mode or provide a complete permutation.",
-        recipeConfig: [
-            {
-                op: "Block Permutation Decode",
-                args: [6, "*,1,2,3,4,*", "Apply single permutation", "", 10000, false],
+                args: [6, "0,1,2,3,4,5,6"],
             },
         ],
     },
@@ -82,7 +71,7 @@ TestRegister.addTests([
         recipeConfig: [
             {
                 op: "Block Permutation Decode",
-                args: [6, "1,1,2,3,4,5", "Apply single permutation", "", 10000, false],
+                args: [6, "1,1,2,3,4,5"],
             },
         ],
     },

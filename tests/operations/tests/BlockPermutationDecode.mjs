@@ -32,6 +32,17 @@ TestRegister.addTests([
         ],
     },
     {
+        name: "Block Permutation Decode: space-separated permutation",
+        input: "abcdefghijkl",
+        expectedOutput: "bacdefhgijkl",
+        recipeConfig: [
+            {
+                op: "Block Permutation Decode",
+                args: [6, "1 0 2 3 4 5"],
+            },
+        ],
+    },
+    {
         name: "Block Permutation Decode: enumerate wildcards",
         input: "abcdef",
         expectedOutput: "# block length: 6\n# resolved mask: *,1,2,3,4,*\n# wildcard positions: 2\n# candidate permutations: 2\n\n# perm: 0,1,2,3,4,5\nabcdef\n\n# perm: 5,1,2,3,4,0\nfbcdea",

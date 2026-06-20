@@ -23,7 +23,7 @@ class BlockPermutationDecode extends Operation {
 
         this.name = "Block Permutation Decode";
         this.module = "Ciphers";
-        this.description = "Decodes text by splitting it into fixed-length blocks and reordering each block using a permutation mask. Leave the mask blank to use 0,1,...,n-1. Use '*' for unknown positions; missing mask positions are padded with '*'.";
+        this.description = "Decodes text by splitting it into fixed-length blocks and reordering each block using a permutation mask. Leave the mask blank to use 0,1,...,n-1. Use ',' or spaces between mask values. Use '*' for unknown positions; missing mask positions are padded with '*'.";
         this.infoURL = "https://wikipedia.org/wiki/Transposition_cipher";
         this.inputType = "string";
         this.outputType = "string";
@@ -40,7 +40,7 @@ class BlockPermutationDecode extends Operation {
                 name: "Permutation mask",
                 type: "string",
                 value: "",
-                hint: "Comma-separated zero-based indexes. Blank means auto. Use '*' for unknown positions, e.g. *,4,2,3,*,*."
+                hint: "Comma- or space-separated zero-based indexes. Blank means auto. Use '*' for unknown positions, e.g. *,4,2,3,*,* or * 4 2 3 * *."
             }
         ];
     }
@@ -104,7 +104,7 @@ function parseMask(maskStr, blockLength) {
 
     const rawMask = maskStr.trim();
     const parts = rawMask ?
-        rawMask.split(",").map(part => part.trim()) :
+        rawMask.split(/[,\s]+/) :
         defaultMask(blockLength).split(",");
 
     if (parts.length > blockLength) {
